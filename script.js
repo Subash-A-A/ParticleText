@@ -2,10 +2,16 @@ const canvas = document.getElementById("canvas");
 const ctx = canvas.getContext("2d");
 canvas.width = window.innerWidth;
 canvas.height = window.innerHeight;
+let spread = 15;
+let hue = 0;
+// found adjustX and adjustY using trial and error
+let adjustX = canvas.width / 2 - (100 * spread) / 10;
+let adjustY = canvas.height / 2 - (200 * spread) / 10;
 
 window.addEventListener("resize", () => {
   canvas.width = window.innerWidth;
   canvas.height = window.innerHeight;
+  location.reload();
 });
 
 let particleArray = [];
@@ -14,7 +20,7 @@ let particleArray = [];
 const mouse = {
   x: null,
   y: null,
-  radius: 250,
+  radius: 100,
 };
 
 window.addEventListener("mousemove", (e) => {
@@ -25,24 +31,26 @@ window.addEventListener("mousemove", (e) => {
 ctx.fillStyle = "white";
 ctx.font = "30px Verdana";
 ctx.fillText("S", 0, 30);
-const data = ctx.getImageData(0, 0, 100, 100);
+const textCoordinates = ctx.getImageData(0, 0, 100, 100);
 
 // Particle
 class Particle {
   constructor(x, y) {
     this.x = x;
     this.y = y;
-    this.size = 3;
+    this.size = 1;
     this.baseX = this.x;
     this.baseY = this.y;
+    this.arc = 0;
     this.density = Math.random() * 30 + 1;
   }
   draw() {
-    ctx.fillStyle = "white";
+    ctx.strokeStyle = `hsl(${hue}, 100%, 50%)`;
+    ctx.lineWidth = 1;
     ctx.beginPath();
-    ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+    ctx.arc(this.x, this.y, this.size, 0, this.arc);
     ctx.closePath();
-    ctx.fill();
+    ctx.stroke();
   }
   update() {
     let delX = mouse.x - this.x;
@@ -63,18 +71,69 @@ class Particle {
     if (distance < mouse.radius) {
       this.x -= directionX;
       this.y -= directionY;
+      if (this.size < 10) {
+        this.size++;
+        this.arc += 1;
+      }
+      if (this.arc < Math.PI * 2) {
+      }
     } else {
-      this.size = 3;
+      if (this.arc > 0) {
+        this.arc -= 0.1;
+      }
+      if (this.x !== this.baseX) {
+        let dx = this.x - this.baseX;
+        this.x -= dx / 10;
+      }
+      if (this.y !== this.baseY) {
+        let dy = this.y - this.baseY;
+        this.y -= dy / 10;
+      }
+      if (this.size > 1) {
+        this.size--;
+      }
     }
   }
 }
 
 function init() {
   particleArray = [];
-  for (let i = 0; i < 500; i++) {
-    let x = Math.random() * canvas.width;
-    let y = Math.random() * canvas.height;
-    particleArray.push(new Particle(x, y));
+  let h = textCoordinates.height;
+  let w = textCoordinates.width;
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
+      // Checking if opacity is greater than 50%
+      // clamped array contains element from 0 to 225
+      // 0->r, 1->g, 2->b, 3->a
+      if (
+        textCoordinates.data[y * 4 * textCoordinates.width + (x * 4 + 3)] > 128
+      ) {
+        let posX = x * spread + adjustX;
+        let posY = y * spread + adjustY;
+
+        particleArray.push(new Particle(posX, posY));
+      }
+    }
+  }
+}
+console.log(ctx);
+
+function connect() {
+  for (let i = 0; i < particleArray.length; i++) {
+    for (let j = i + 1; j < particleArray.length; j++) {
+      let dx = particleArray[i].x - particleArray[j].x;
+      let dy = particleArray[i].y - particleArray[j].y;
+      let dist = Math.sqrt(dx * dx + dy * dy);
+
+      if (dist < 70) {
+        ctx.strokeStyle = `hsl(${hue}, 100%, 50%)`;
+        ctx.lineWidth = 0.5;
+        ctx.beginPath();
+        ctx.moveTo(particleArray[i].x, particleArray[i].y);
+        ctx.lineTo(particleArray[j].x, particleArray[j].y);
+        ctx.stroke();
+      }
+    }
   }
 }
 
@@ -85,9 +144,10 @@ function animate() {
     particleArray[i].draw();
     particleArray[i].update();
   }
+  connect();
+  hue += 0.1;
   requestAnimationFrame(animate);
 }
 
 init();
 animate();
-console.log(particleArray);
