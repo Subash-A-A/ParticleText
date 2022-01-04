@@ -14,6 +14,8 @@ window.addEventListener("resize", () => {
   location.reload();
 });
 
+console.log(ctx);
+
 let particleArray = [];
 
 // Mouse
@@ -41,14 +43,18 @@ class Particle {
     this.size = 1;
     this.baseX = this.x;
     this.baseY = this.y;
-    this.arc = 0;
     this.density = Math.random() * 30 + 1;
   }
   draw() {
     ctx.strokeStyle = `hsl(${hue}, 100%, 50%)`;
     ctx.lineWidth = 1;
     ctx.beginPath();
-    ctx.arc(this.x, this.y, this.size, 0, this.arc);
+    ctx.rect(
+      this.x - this.size / 2,
+      this.y - this.size / 2,
+      this.size,
+      this.size
+    );
     ctx.closePath();
     ctx.stroke();
   }
@@ -71,16 +77,10 @@ class Particle {
     if (distance < mouse.radius) {
       this.x -= directionX;
       this.y -= directionY;
-      if (this.size < 10) {
-        this.size++;
-        this.arc += 1;
-      }
-      if (this.arc < Math.PI * 2) {
+      if (this.size < 20) {
+        this.size += 1;
       }
     } else {
-      if (this.arc > 0) {
-        this.arc -= 0.1;
-      }
       if (this.x !== this.baseX) {
         let dx = this.x - this.baseX;
         this.x -= dx / 10;
@@ -90,7 +90,7 @@ class Particle {
         this.y -= dy / 10;
       }
       if (this.size > 1) {
-        this.size--;
+        this.size -= 1;
       }
     }
   }
